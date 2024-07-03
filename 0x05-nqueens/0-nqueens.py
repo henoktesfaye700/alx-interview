@@ -1,78 +1,113 @@
 #!/usr/bin/python3
-""" N queens """
-
-
+"""N queens solution finder module.
+"""
 import sys
 
 
-if len(sys.argv) > 2 or len(sys.argv) < 2:
-    print("Usage: nqueens N")
-    exit(1)
-
-if not sys.argv[1].isdigit():
-    print("N must be a number")
-    exit(1)
-
-if int(sys.argv[1]) < 4:
-    print("N must be at least 4")
-    exit(1)
-
-n = int(sys.argv[1])
+solutions = []
+"""The list of possible solutions to the N queens problem.
+"""
+n = 0
+"""The size of the chessboard.
+"""
+pos = None
+"""The list of possible positions on the chessboard.
+"""
 
 
-def queens(n, i=0, a=[], b=[], c=[]):
-    """Find all possible positions for N queens on an NxN board.
+def get_input():
+    """Retrieves and validates this program's argument.
 
-    The positions are represented by a list of indices in the
-    range [0, N) where the index represents the row and the value
-    at that index represents the column.
-
-    The positions are found by using a recursive backtracking
-    algorithm. The positions are yielded from the recursive function
-    as they are found.
-
-    Parameters:
-    n (int): The size of the board. Must be at least 4.
-    i (int): The current row. Defaults to 0.
-    a (list): The list of column indices for the queens in the
-        rows above the current row. Defaults to an empty list.
-    b (list): The list of column indices plus row indices for the
-        queens in the rows above the current row. Defaults to an
-        empty list.
-    c (list): The list of column indices minus row indices for the
-        queens in the rows above the current row. Defaults to an
-        empty list.
-
-    Yields:
-    list: The list of column indices for the N queens.
+    Returns:
+        int: The size of the chessboard.
     """
-    if i < n:
-        for j in range(n):
-            if j not in a and i + j not in b and i - j not in c:
-                yield from queens(n, i + 1, a + [j], b + [i + j], c + [i - j])
-    else:
-        yield a
-def solve(n: int) -> None:
-    """Print all possible positions for N queens on an NxN board.
+    global n
+    n = 0
+    if len(sys.argv) != 2:
+        print("Usage: nqueens N")
+        sys.exit(1)
+    try:
+        n = int(sys.argv[1])
+    except Exception:
+        print("N must be a number")
+        sys.exit(1)
+    if n < 4:
+        print("N must be at least 4")
+        sys.exit(1)
+    return n
 
-    The positions are represented by a list of indices in the
-    range [0, N) where the index represents the row and the value
-    at that index represents the column.
 
-    Parameters:
-    n (int): The size of the board. Must be at least 4.
+def is_attacking(pos0, pos1):
+    """Checks if the positions of two queens are in an attacking mode.
+
+    Args:
+        pos0 (list or tuple): The first queen's position.
+        pos1 (list or tuple): The second queen's position.
+
+    Returns:
+        bool: True if the queens are in an attacking position else False.
     """
-    k = []  # list to store the positions of the queens
-    i = 0  # current row
-    # iterate over all possible positions for the queens
-    for solution in queens(n, 0):
-        for s in solution:
-            # add the current position to the list
-            k.append([i, s])
-            # increment the current row
-            i += 1
-        # print the positions of the queens
-        print(k)
-        k = []
+    if (pos0[0] == pos1[0]) or (pos0[1] == pos1[1]):
+        return True
+    return abs(pos0[0] - pos1[0]) == abs(pos0[1] - pos1[1])
+
+
+def group_exists(group):
+    """Checks if a group exists in the list of solutions.
+
+    Args:
+        group (list of integers): A group of possible positions.
+
+    Returns:
+        bool: True if it exists, otherwise False.
+    """
+    global solutions
+    for stn in solutions:
         i = 0
-solve(n)
+        for stn_pos in stn:
+            for grp_pos in group:
+                if stn_pos[0] == grp_pos[0] and stn_pos[1] == grp_pos[1]:
+                    i += 1
+        if i == n:
+            return True
+    return False
+
+
+def build_solution(row, group):
+    """Builds a solution for the n queens problem.
+
+    Args:
+        row (int): The current row in the chessboard.
+        group (list of lists of integers): The group of valid positions.
+    """
+    global solutions
+    global n
+    if row == n:
+        tmp0 = group.copy()
+        if not group_exists(tmp0):
+            solutions.append(tmp0)
+    else:
+        for col in range(n):
+            a = (row * n) + col
+            matches = zip(list([pos[a]]) * len(group), group)
+            used_positions = map(lambda x: is_attacking(x[0], x[1]), matches)
+            group.append(pos[a].copy())
+            if not any(used_positions):
+                build_solution(row + 1, group)
+            group.pop(len(group) - 1)
+
+
+def get_solutions():
+    """Gets the solutions for the given chessboard size.
+    """
+    global pos, n
+    pos = list(map(lambda x: [x // n, x % n], range(n ** 2)))
+    a = 0
+    group = []
+    build_solution(a, group)
+
+
+n = get_input()
+get_solutions()
+for solution in solutions:
+    print(solution)
